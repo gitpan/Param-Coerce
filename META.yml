@@ -1,0 +1,16 @@
+name: Param-Coerce
+version: 0.00_01
+abstract: Allows your classes to do coercion of parameters
+author: Adam Kennedy<cpan@ali.as>
+license: perl
+distribution_type: module
+build_requires:
+  Test::More: 0.47
+  File::Spec: 0.82
+requires:
+  perl: 5.005
+  Class::Inspector: 1.06
+no_index:
+  directory:
+    - inc
+generated_by: Module::Install version 0.35
