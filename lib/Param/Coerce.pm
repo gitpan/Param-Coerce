@@ -186,7 +186,7 @@ use Scalar::Util ();
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '0.05';
+	$VERSION = '0.06';
 }
 
 # The hint cache
@@ -220,7 +220,12 @@ sub import {
 	my $method = _method($_[0])      or Carp::croak "Illegal method name '$_[0]'";
 	my $want   = _class($_[1])       or Carp::croak "Illegal class name '$_[1]'";
 	_function_exists($pkg, $method) and Carp::croak "Cannot create '${pkg}::$method'. It already exists";
-	_loaded($want)                   or require $want;
+
+	# Make sure the class is loaded
+	unless ( _loaded($want) ) {
+		eval "require $want";
+		die $@ if $@;
+	}
 
 	# Create the method in our caller
 	eval "package $pkg; sub $method { Param::Coerce::_coerce('$want', \$_[1]) }";

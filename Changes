@@ -1,5 +1,8 @@
 Revision history for Perl extension Param::Coerce
 
+0.06  Mon Oct 11 2004
+	- Fixed a class loading bug
+
 0.05  Wed Oct  6 2004
 	- Moved to a more flexible hint format
 
