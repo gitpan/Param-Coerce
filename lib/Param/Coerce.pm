@@ -162,13 +162,14 @@ step is supported.
 =cut
 
 use strict;
-use UNIVERSAL 'isa', 'can';
-use Scalar::Util 'blessed';
-use Carp 'croak';
+use Carp         ();
+use Scalar::Util ();
+
+# Load Overhead: 56k
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '0.02';
+	$VERSION = '0.03';
 }
 
 sub import {
@@ -181,7 +182,7 @@ sub import {
 
 	# We export them the coerce function if they want it
 	if ( @_ == 1 ) {
-		croak "Param::Coerce does not export '$_[0]'" unless $_[0] eq 'coerce';
+		Carp::croak "Param::Coerce does not export '$_[0]'" unless $_[0] eq 'coerce';
 		no strict 'refs';
 		*{"${pkg}::coerce"} = *coerce;
 		return 1;
@@ -189,14 +190,14 @@ sub import {
 
 	# The two argument form is 'method' => 'class'
 	# Check the values given to us.
-	my $method = _method($_[0])      or croak "Illegal method name '$_[0]'";
-	my $want   = _class($_[1])       or croak "Illegal class name '$_[1]'";
-	_function_exists($pkg, $method) and croak "Cannot create '${pkg}::$method'. It already exists";
-	_loaded($want)                   or croak "Cannot create coercion method for unloaded class '$want'";
+	my $method = _method($_[0])      or Carp::croak "Illegal method name '$_[0]'";
+	my $want   = _class($_[1])       or Carp::croak "Illegal class name '$_[1]'";
+	_function_exists($pkg, $method) and Carp::croak "Cannot create '${pkg}::$method'. It already exists";
+	_loaded($want)                   or Carp::croak "Cannot create coercion method for unloaded class '$want'";
 
 	# Create the method in our caller
 	eval "package $pkg; sub $method { Param::Coerce::_coerce('$want', \$_[1]) }";
-	croak "Failed to create coercion method '$method' in $pkg': $@" if $@;
+	Carp::croak "Failed to create coercion method '$method' in $pkg': $@" if $@;
 
 	1;
 }
@@ -220,8 +221,8 @@ Returns C<undef> if the parameter cannot be coerced into the class you wish.
 
 sub coerce($$) {
 	# Check what they want properly first
-	my $want = _class($_[0]) or croak "Illegal class name '$_[0]'";
-	_loaded($want) or croak "Tried to coerce to unloaded class '$want'";
+	my $want = _class($_[0]) or Carp::croak "Illegal class name '$_[0]'";
+	_loaded($want) or Carp::croak "Tried to coerce to unloaded class '$want'";
 
 	# Now call the real function
 	_coerce($want, $_[1]);
@@ -231,7 +232,7 @@ sub coerce($$) {
 # the first argument is FULLY validated.
 sub _coerce {
 	my $want = shift;
-	my $have = blessed $_[0] ? shift : return undef;
+	my $have = Scalar::Util::blessed $_[0] ? shift : return undef;
 
 	# In the simplest case it is already what we need
 	return $have if $have->isa($want);
@@ -240,7 +241,7 @@ sub _coerce {
 	my $method = _coercion_method($want);
 	if ( $have->can($method) ) {
 		$have = $have->$method();
-		if ( blessed $have and $have->isa($want) ) {
+		if ( Scalar::Util::blessed $have and $have->isa($want) ) {
 			return $have;
 		}
 	}

@@ -1,5 +1,8 @@
 Revision history for Perl extension Param::Coerce
 
+0.03  Sat Oct  3 2004
+	- Cut load overhead down to 56k
+
 0.02  Sat Oct  3 2004
 	- Tried to make the documentation a bit more readable
 
