@@ -1,5 +1,8 @@
 Revision history for Perl extension Param::Coerce
 
+0.07 Tue Feb 15 2005
+	- Removing braindead Build.PL
+
 0.06  Mon Oct 11 2004
 	- Fixed a class loading bug
 

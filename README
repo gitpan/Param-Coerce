@@ -188,12 +188,11 @@ TO DO
     overload and other types of things.
 
 SUPPORT
-    Module not implemented, there's nothing to be broken. But if you have
-    installation problems, submit them to the CPAN bug tracker.
+    Bugs should always be submitted via the CPAN bug tracker
 
     <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Param%3A%3ACoerce>
 
-    For other issues, contact the designer
+    For other issues, contact the maintainer
 
 AUTHORS
     Adam Kennedy (Maintainer), <http://ali.as/>, cpan@ali.as

@@ -186,7 +186,7 @@ use Scalar::Util ();
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '0.06';
+	$VERSION = '0.07';
 }
 
 # The hint cache
@@ -373,12 +373,11 @@ L<overload> and other types of things.
 
 =head1 SUPPORT
 
-Module not implemented, there's nothing to be broken. But if you have
-installation problems, submit them to the CPAN bug tracker.
+Bugs should always be submitted via the CPAN bug tracker
 
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Param%3A%3ACoerce>
 
-For other issues, contact the designer
+For other issues, contact the maintainer
 
 =head1 AUTHORS
 
