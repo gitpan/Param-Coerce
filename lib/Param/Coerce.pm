@@ -8,72 +8,59 @@ Param::Coerce - Allows your classes to do coercion of parameters
 
 =head1 SYNOPSIS
 
-  # A class that can be coerced to a different class
-  package My::Class;
+This example demonstrates a real world example, using the L<HTML::Location>
+module, which has been enabled for use with it.
+
+  # My class needs a URI
+  package Web::Spider;
   
-  sub new {
-      bless { value => $_[1] }, $_[0];
-  }
+  use URI;
+  use Param::Coerce 'coerce';
   
-  sub __as_Foo_Bar {
-      my $self = shift;
-      Foo::Bar->new( $self->{value} );
-  }
-  
-  
-  
-  # Package taking a Foo::Bar parameter
-  package My::Consumer;
-  
-  # ->new MUST be provided a Foo::Bar
   sub new {
       my $class = shift;
-      my $param = Param::Coerce->param('Foo::Bar', shift) or die 'Not passed a Foo::Bar';
       
-      bless {
-          FooBar => $param,
-          }, $class
+      # Where do we start spidering
+      my $start = coerce('URI', shift) or die "Wasn't passed a URI";
+      
+      bless { root => $start }, $class;
   }
   
+  #############################################
+  # Now we can do the following
   
+  # Pass a URI as normal
+  my $URI     = URI->new('http://ali.as/');
+  my $Spider1 = Web::Spider->new( $URI );
   
-  # Import the same functionality locally
-  package My::Thingy;
-  
-  use Param::Coerce '_FooBar' => 'Foo::Bar';
-  
-  sub new {
-  	my $class = shift;
-  	my $param = $class->_FooBar(shift) or die 'Not passed a Foo::Bar';
-  	bless {
-  	    FooBar => $param,
-  		}, $class;
-  }
+  # We can also pass anything that can be coerced into being a URI
+  my $Website = HTML::Location->new( '/home/adam/public_html', 'http://ali.as' );
+  my $Spider2 = Web::Spider->new( $Website );
 
 =head1 DESCRIPTION
 
-A big part of good API design, and a big part of Perl's general use of
-subroutine parameters, is that we should be able to be flexibly in the
-ways that we take parameters.
+A big part of good API design is that we should be able to be flexible in
+the ways that we take parameters.
 
 Param::Coerce attempts to encourage this, by making it easier to take a
-variety of different things, and to do so without slowing your own code
-down.
+variety of different arguments, while adding negligable additional complexity
+to your code.
 
 =head2 What is Coercion
 
 "Coercion" in computing terms generally referse to "implicit type
-conversion", and is most often seen in auto-boxing and auto-unboxing of
-String objects in the Java language. Perl itself does coercion between
-string, numerical and boolean contexts. The L<overload> pragma, and it's
-string overloading is the form of coercion you are most likely to have
-encountered in Perl programming.
+conversion". This is where data and object are converted from one type to
+another behind the scenes, and you just just magically get what you need.
 
-Param::Coerce is intended for higher-order coercion of subroutine and
-(mostly) method parameters, allowing coercion between different types of
-objects.
+The L<overload> pragma, and its string overloading is the form of coercion
+you are most likely to have encountered in Perl programming. In this case,
+your object is automatically (within perl itself) coerced into a string.
 
-=head2 __as_Object_Class Methods
+Param::Coerce is intended for higher-order coercion between various types of
+different objects, for use mainly in subroutine and (mostly) method
+parameters, particularly on external APIs.
+
+=head2 __as_Another_Class Methods
 
 At the heart of Param::Coerce is the ability to transform objects from one
 thing to another. This can be done by a variety of different mechanisms.
@@ -81,44 +68,44 @@ thing to another. This can be done by a variety of different mechanisms.
 The prefered mechanism for this is by creating a specially named method
 in a class that indicates it can be coerced into another type of object.
 
-That is, class Object::From provides an object method that returns an
-equivalent Object::To object.
+As an example, L<HTML::Location> provides an object method that returns an
+equivalent URI object.
 
-  package My::Class;
+  # In the package HTML::Location
   
-  # Coerce a My::Class object into a Foo::Bar object
-  sub __as_Foo_Bar {
-  	...
+  # Coerce to a URI.
+  # Only give them a copy, not the original
+  sub __as_URI {
+  	my $self = shift;
+ 	return URI->new( $self->uri );
   }
 
 =head2 Loading Classes
 
-One thing to note with the C<__as_Class> methods is that you are B<not>
-required to load the class you are converting to in the class you are
+One thing to note with the C<__as_Another_Class> methods is that you are
+ B<not> required to load the class you are converting to in the class you are
 converting from.
 
-In the above example, My::Class would B<not> have to load Foo::Bar, using
-either C<use Foo::Bar> at the top of the module or C<require Foo::Bar> in
-the method itself. The need to load the classes for every object we might
-some day need to be converted to would result in highly excessive resource
-usage.
+In the above example, HTML::Location does B<not> have to load the URI class.
+The need to load the classes for every object we might some day need to be
+coerced to would result in highly excessive resource usage.
 
-Instead, Param::Coerce guatentees that the class you are converting to
-C<will> be loaded before it calls the __as_Foo_Bar method. Of course, in
-most situations you will have already loaded it for another purpose in
+Instead, Param::Coerce guarentees that the class you are converting to
+C<will> be loaded before it calls the __as_Another_Class method. Of course,
+in most situations you will have already loaded it for another purpose in
 either the From or To classes and this won't be an issue.
 
-If you make use of some class B<other than> the direct class being Coerced
-to in the __as_Foo_Bar method, you will need to make sure that is loaded
-in your code, but it is suggested that you do it ar run-time with a
-C<require> if you are not using it elsewhere.
+If you make use of some class B<other than> the class you are being coerced
+to in the __as_Another_Class method, you will need to make sure that is loaded
+in your code, but it is suggested that you do it at run-time with a
+C<require> if you are not using it already elsewhere.
 
 =head2 Coercing a Parameter
 
 The most explicit way of accessing the coercion functionality is with the
-Param::Coerce::coerce function. It takes as it's first argument the name
-of the class you wish to coerce to, followed by the parameter you wish to
-apply the coercion to.
+Param::Coerce::coerce function. It takes as its first argument the name
+of the class you wish to coerce B<to>, followed by the parameter to which you
+wish to apply the coercion.
 
   package My::Class;
   
@@ -181,7 +168,7 @@ use Carp 'croak';
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '0.01';
+	$VERSION = '0.02';
 }
 
 sub import {
@@ -219,14 +206,14 @@ sub import {
 =head2 coerce $class, $param
 
 The C<coerce> function takes a class name and a single parameter and
-attempts to coerce the parameter into the intended class, or one of it's
+attempts to coerce the parameter into the intended class, or one of its
 subclasses.
 
 Please note that it is the responsibility of the consuming class to ensure
 that the class you wish to coerce to is loaded. C<coerce> will check this
 and die is it is not loaded.
 
-Returns an instance of the class you specify, or one of it's subclasses.
+Returns an instance of the class you specify, or one of its subclasses.
 Returns C<undef> if the parameter cannot be coerced into the class you wish.
 
 =cut

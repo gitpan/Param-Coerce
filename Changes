@@ -1,4 +1,10 @@
 Revision history for Perl extension Param::Coerce
 
+0.02  Sat Oct  3 2004
+	- Tried to make the documentation a bit more readable
+
+0.01  Sat Oct  2 2004
+	- Completed the first implementation
+
 0.01_01 Sat Oct  2 2004
 	- Create the specification for the module
