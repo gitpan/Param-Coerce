@@ -1,5 +1,8 @@
 Revision history for Perl extension Param::Coerce
 
+0.05  Wed Oct  6 2004
+	- Moved to a more flexible hint format
+
 0.04  Sun Oct  4 2004
 	- Added support for __from methods
 	- Cut load overhead down to 52k

@@ -186,11 +186,11 @@ use Scalar::Util ();
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '0.04';
+	$VERSION = '0.05';
 }
 
-# The method hint cache
-my %methods = ();
+# The hint cache
+my %hints = ();
 
 
 
@@ -220,7 +220,7 @@ sub import {
 	my $method = _method($_[0])      or Carp::croak "Illegal method name '$_[0]'";
 	my $want   = _class($_[1])       or Carp::croak "Illegal class name '$_[1]'";
 	_function_exists($pkg, $method) and Carp::croak "Cannot create '${pkg}::$method'. It already exists";
-	_loaded($want)                   or Carp::croak "Cannot create coercion method for unloaded class '$want'";
+	_loaded($want)                   or require $want;
 
 	# Create the method in our caller
 	eval "package $pkg; sub $method { Param::Coerce::_coerce('$want', \$_[1]) }";
@@ -266,12 +266,29 @@ sub _coerce {
 
 	# Is there a coercion hint for this combination
 	my $key = ref($have) . ',' . $want;
-	my $method = exists $methods{$key} ? $methods{$key}
+	my $hint = exists $hints{$key} ? $hints{$key}
 		: _resolve($want, ref($have), $key)
 		or return undef;
 
-	# Call the coercion method
-	$have = ($method =~ s/^-//) ? $want->$method($have) : $have->$method();
+	# Call the coercion function
+	my $type = substr($hint, 0, 1, '');
+	if ( $type eq '>' ) {
+		# Direct Push
+		$have = $have->$hint();
+	} elsif ( $type eq '<' ) {
+		# Direct Pull
+		$have = $want->$hint($have);
+	} elsif ( $type eq '^' ) {
+		# Third party
+		my ($pkg, $function) = $hint =~ m/^(.*)::(.*)$/s;
+		require $pkg;
+		no strict 'refs';
+		$have = &{"${pkg}::${function}"}($have);
+	} else {
+		die "Unknown coercion hint '$type$hint'";
+	}
+
+	# Did we get what we wanted?
 	(Scalar::Util::blessed $have and $have->isa($want)) ? $have : undef
 }
 
@@ -282,15 +299,22 @@ sub _resolve {
 	# Look for a __as method
 	my $method = "__as_$want";
 	$method =~ s/::/_/g;
-	return $methods{$key} = $method if $have->can($method);
+	return _hint($key, ">$method") if $have->can($method);
 
 	# Look for a direct __from method
 	$method = "__from_$have";
 	$method =~ s/::/_/g;
-	return $methods{$key} = "-$method" if $want->can($method);
+	return _hint($key, "<$method") if $want->can($method);
 
-	# Give up (and don't try again)
-	$methods{$key} = '';
+	# Give up (and don't try again).
+	# We use zero specifically so it will return false in boolean context
+	_hint($key, '0');
+}
+
+# For now just save to the memory hash.
+# Later, this may also involve saving to a database somewhere.
+sub _hint {
+	$hints{$_[0]} = $_[1];
 }
 
 
