@@ -15,7 +15,7 @@ BEGIN {
 	}
 }
 
-use Test::More tests => 20;
+use Test::More tests => 22;
 use Param::Coerce;
 
 BEGIN { $DB::single = $DB::single = 1 }
@@ -70,6 +70,12 @@ ok( Param::Coerce::_function_exists('Foo::Bar::Usage3', '_Bar'), "use Param::Coe
 	isa_ok( $Usage->{Bar}, 'Bar' );	
 }
 
+{ # __from coercion
+	my $Bar = Bar->new; isa_ok( $Bar, 'Bar' );
+	my $Foo = Param::Coerce::coerce 'Foo', $Bar;
+	isa_ok( $Foo, 'Foo' );
+}
+
 
 
 
@@ -89,7 +95,8 @@ sub new {
 	bless {}, shift;
 }
 
-sub __as_Bar { Bar->new; }
+sub __as_Bar   { Bar->new }
+sub __from_Bar { Foo->new }
 
 package Foo::Bar::Usage1;
 

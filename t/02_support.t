@@ -15,7 +15,7 @@ BEGIN {
 	}
 }
 
-use Test::More tests => 25;
+use Test::More tests => 23;
 use Param::Coerce ();
 
 
@@ -46,10 +46,6 @@ is( Param::Coerce::_class('foo::bar'), 'foo::bar',  '_class("foo::bar") returns 
 is( Param::Coerce::_class('1asdf'),    '',          '_class("1asdf") return correctly' );
 is( Param::Coerce::_class('::'),       'main',      '_class("::") returns correctly' );
 is( Param::Coerce::_class('::bar'),    'main::bar', '_class("::bar") returns correctly' );
-
-# Test _coercion method
-is( Param::Coerce::_coercion_method('Foo'), '__as_Foo', '_coercion_method("Foo") returns correctly' );
-is( Param::Coerce::_coercion_method('Foo::Bar'), '__as_Foo_Bar', '_coercion_method() returns correctly' );
 
 # Test _loaded
 ok(   Param::Coerce::_loaded('Param::Coerce'), '_loaded returns true for Param::Coerce' );

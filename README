@@ -67,12 +67,28 @@ DESCRIPTION
 
       # In the package HTML::Location
   
-      # Coerce to a URI.
-      # Only give them a copy, not the original
+      # Coerce to a URI
       sub __as_URI {
             my $self = shift;
             return URI->new( $self->uri );
       }
+
+  __from_Another_Class Methods
+    From version 0.04 of Param::Coerce, you may now also provide
+    __from_Another_Class methods as well. In the above example, rather then
+    having to define a method in HTML::Location, you may instead define one
+    in URI. The following code has an identical effect.
+
+      # In the package URI
+  
+      # Coerce from a HTML::Location
+      sub __from_HTML_Location {
+            my $Location = shift;
+            return URI->new( $Location->uri );
+      }
+
+    Param::Coerce will only look for the __from method, if it does not find
+    a __as method.
 
   Loading Classes
     One thing to note with the "__as_Another_Class" methods is that you are
@@ -164,7 +180,7 @@ FUNCTIONS
     wish.
 
 TO DO
-    - Write the unit tests
+    - Write more unit tests
 
     - Implement chained coercion
 

@@ -73,12 +73,29 @@ equivalent URI object.
 
   # In the package HTML::Location
   
-  # Coerce to a URI.
-  # Only give them a copy, not the original
+  # Coerce to a URI
   sub __as_URI {
   	my $self = shift;
  	return URI->new( $self->uri );
   }
+
+=head2 __from_Another_Class Methods
+
+From version 0.04 of Param::Coerce, you may now also provide
+__from_Another_Class methods as well. In the above example, rather then
+having to define a method in HTML::Location, you may instead define one in
+URI. The following code has an identical effect.
+
+  # In the package URI
+  
+  # Coerce from a HTML::Location
+  sub __from_HTML_Location {
+  	my $Location = shift;
+  	return URI->new( $Location->uri );
+  }
+
+Param::Coerce will only look for the __from method, if it does not find a __as
+method.
 
 =head2 Loading Classes
 
@@ -165,12 +182,22 @@ use strict;
 use Carp         ();
 use Scalar::Util ();
 
-# Load Overhead: 56k
+# Load Overhead: 52k
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '0.03';
+	$VERSION = '0.04';
 }
+
+# The method hint cache
+my %methods = ();
+
+
+
+
+
+#####################################################################
+# Use as a Pragma
 
 sub import {
 	my $class = shift;
@@ -237,17 +264,33 @@ sub _coerce {
 	# In the simplest case it is already what we need
 	return $have if $have->isa($want);
 
-	# Does what we have support casting to what we want?
-	my $method = _coercion_method($want);
-	if ( $have->can($method) ) {
-		$have = $have->$method();
-		if ( Scalar::Util::blessed $have and $have->isa($want) ) {
-			return $have;
-		}
-	}
+	# Is there a coercion hint for this combination
+	my $key = ref($have) . ',' . $want;
+	my $method = exists $methods{$key} ? $methods{$key}
+		: _resolve($want, ref($have), $key)
+		or return undef;
 
-	# Couldn't cast to $want or casting failed
-	undef;
+	# Call the coercion method
+	$have = ($method =~ s/^-//) ? $want->$method($have) : $have->$method();
+	(Scalar::Util::blessed $have and $have->isa($want)) ? $have : undef
+}
+
+# Try to work out how to get from one class to the other class
+sub _resolve {
+	my ($want, $have, $key) = @_;
+
+	# Look for a __as method
+	my $method = "__as_$want";
+	$method =~ s/::/_/g;
+	return $methods{$key} = $method if $have->can($method);
+
+	# Look for a direct __from method
+	$method = "__from_$have";
+	$method =~ s/::/_/g;
+	return $methods{$key} = "-$method" if $want->can($method);
+
+	# Give up (and don't try again)
+	$methods{$key} = '';
 }
 
 
@@ -271,13 +314,6 @@ sub _class {
 	$name =~ /\A[^\W\d]\w*(?:(?:\'|::)[^\W\d]\w*)*\z/ ? $name : '';
 }
 
-# Derive the coercion name for a given class
-sub _coercion_method {
-	my $name = shift;
-	$name =~ s/(?:\'|::)/_/g;
-	"__as_$name";
-}
-
 # Is a class loaded.
 sub _loaded {
 	no strict 'refs';
@@ -299,7 +335,7 @@ sub _function_exists {
 
 =head1 TO DO
 
-- Write the unit tests
+- Write more unit tests
 
 - Implement chained coercion
 
