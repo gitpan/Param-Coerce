@@ -17,3 +17,5 @@ MANIFEST			This list of files
 META.yml
 README
 t/01_compile.t
+t/02_support.t
+t/03_usage.t

@@ -1,10 +1,6 @@
 NAME
     Param::Coerce - Allows your classes to do coercion of parameters
 
-STATUS
-    Please note this module has not yet been implemented, and is a statement
-    of intent only
-
 SYNOPSIS
       # A class that can be coerced to a different class
       package My::Class;
@@ -175,11 +171,9 @@ FUNCTIONS
     wish.
 
 TO DO
-    - Write the actual code
-
     - Write the unit tests
 
-    - Implemented chained coercion
+    - Implement chained coercion
 
     - Provide a way to coerce to string, int, etc that is compatible with
     overload and other types of things.

@@ -6,11 +6,6 @@ package Param::Coerce;
 
 Param::Coerce - Allows your classes to do coercion of parameters
 
-=head1 STATUS
-
-B<Please note this module has not yet been implemented, and is a statement
-of intent only>
-
 =head1 SYNOPSIS
 
   # A class that can be coerced to a different class
@@ -182,10 +177,41 @@ step is supported.
 use strict;
 use UNIVERSAL 'isa', 'can';
 use Scalar::Util 'blessed';
+use Carp 'croak';
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '0.00_01';
+	$VERSION = '0.01';
+}
+
+sub import {
+	my $class = shift;
+	return unless @_; # Nothing to do
+	die "Too many parameters" if @_ > 2; # Um, what?
+
+	# We'll need to know who is calling us
+	my $pkg = caller();
+
+	# We export them the coerce function if they want it
+	if ( @_ == 1 ) {
+		croak "Param::Coerce does not export '$_[0]'" unless $_[0] eq 'coerce';
+		no strict 'refs';
+		*{"${pkg}::coerce"} = *coerce;
+		return 1;
+	}
+
+	# The two argument form is 'method' => 'class'
+	# Check the values given to us.
+	my $method = _method($_[0])      or croak "Illegal method name '$_[0]'";
+	my $want   = _class($_[1])       or croak "Illegal class name '$_[1]'";
+	_function_exists($pkg, $method) and croak "Cannot create '${pkg}::$method'. It already exists";
+	_loaded($want)                   or croak "Cannot create coercion method for unloaded class '$want'";
+
+	# Create the method in our caller
+	eval "package $pkg; sub $method { Param::Coerce::_coerce('$want', \$_[1]) }";
+	croak "Failed to create coercion method '$method' in $pkg': $@" if $@;
+
+	1;
 }
 
 =pod
@@ -206,14 +232,77 @@ Returns C<undef> if the parameter cannot be coerced into the class you wish.
 =cut
 
 sub coerce($$) {
+	# Check what they want properly first
+	my $want = _class($_[0]) or croak "Illegal class name '$_[0]'";
+	_loaded($want) or croak "Tried to coerce to unloaded class '$want'";
+
+	# Now call the real function
+	_coerce($want, $_[1]);
+}
+
+# Internal version with less checks. Should ONLY be called once
+# the first argument is FULLY validated.
+sub _coerce {
 	my $want = shift;
 	my $have = blessed $_[0] ? shift : return undef;
 
 	# In the simplest case it is already what we need
 	return $have if $have->isa($want);
 
-	# Actual coercion code not implemented
+	# Does what we have support casting to what we want?
+	my $method = _coercion_method($want);
+	if ( $have->can($method) ) {
+		$have = $have->$method();
+		if ( blessed $have and $have->isa($want) ) {
+			return $have;
+		}
+	}
+
+	# Couldn't cast to $want or casting failed
 	undef;
+}
+
+
+
+
+
+#####################################################################
+# Support Functions
+
+# Validate a method
+sub _method {
+	my $name = (defined $_[0] and ! ref $_[0]) ? shift : return '';
+	$name =~ /^[^\W\d]\w*$/ ? $name : '';
+}
+
+# Validate a class name.
+sub _class {
+	my $name = (defined $_[0] and ! ref $_[0]) ? shift : return '';
+	return 'main' if $name eq '::';
+	$name =~ s/^::/main::/;
+	$name =~ /\A[^\W\d]\w*(?:(?:\'|::)[^\W\d]\w*)*\z/ ? $name : '';
+}
+
+# Derive the coercion name for a given class
+sub _coercion_method {
+	my $name = shift;
+	$name =~ s/(?:\'|::)/_/g;
+	"__as_$name";
+}
+
+# Is a class loaded.
+sub _loaded {
+	no strict 'refs';
+	foreach ( keys %{"$_[0]::"} ) {
+		return 1 unless substr($_, -2, 2) eq '::';
+	}
+	'';
+}
+
+# Does a function exist.
+sub _function_exists {
+	no strict 'refs';
+	defined &{"$_[0]::$_[1]"};
 }
 
 1;
@@ -222,11 +311,9 @@ sub coerce($$) {
 
 =head1 TO DO
 
-- Write the actual code
-
 - Write the unit tests
 
-- Implemented chained coercion
+- Implement chained coercion
 
 - Provide a way to coerce to string, int, etc that is compatible with
 L<overload> and other types of things.
